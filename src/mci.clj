@@ -1,5 +1,5 @@
 (ns sicp.chapterfour.interpreter
-(fn evl [exp env]
+(defn evl [exp env]
     (cond (self-evluating? exp) exp
           (variable? exp) (lookup-variable-value exp env)
           (quoted? exp) (text-of-quotation exp)
@@ -20,7 +20,7 @@
             (error "Unknown expression type -- evl" exp)
       ))
 
-(fn apply [procedure arguments]
+(defn apply [procedure arguments]
     (cond (primitive-procedure? procedure)
            (apply-primitive-procedure procedure arguments)
           (compound-procedure? procedure)
@@ -33,38 +33,138 @@
           :else
             (error "Unknown procedure type -- APPLY" procedure)))
 
-(fn list-of-values [exps env]
+(defn list-of-values [exps env]
     (if (no-operands? exps)
         '()
         (cons (evl (first-operand exps) env)
               (list-of-values (rest-operands exps) env))))
 
-(fn evl-if [exp env]
+(defn evl-if [exp env]
     (if (true? (evl (if-predicate exp) env))
         (evl (if-consequent exp) env)
         (evl (if-alternative exp) env)))
 
-(fn evl-sequence [exp env]
+(defn evl-sequence [exp env]
     (cond (last-exp? exps) (evl (first-exp exps) env)
           :else (do
                   (evl (first-exp exps) env)
                   (evl-sequence (rest-exps exps) env))))
 
-(fn evl-assignment [exp env]
+(defn evl-assignment [exp env]
     (do
     (set-variable-value! (assignment-variable exp)
                          (evl (assignment-value exp) env)
                          env)
     :ok))
 
-(fn evl-definition [exp env]
+(defn evl-definition [exp env]
     (do
     (define-variable! (definition-variable exp)
                       (eval (definition-value exp) env))
     :ok))
 
-(fn self-evaluating? [exp]
+(defn self-evaluating? [exp]
     (cond (number? exp) true
           (string? exp) true
           :else false))
+
+(defn variable? [exp]
+    (symbol? exp))
+
+(defn quoted? [exp]
+    (tagged-list? exp 'quote))
+
+(defn tagged-list? [exp tag]
+    (if (pair? exp)
+        (= (car exp) tag)
+        false))
+
+(defn assigment? [exp]
+    (tagged-list? exp 'set!))
+
+(defn definition? [exp]
+    (tagged-list? exp 'define))
+
+(defn definition-variable [exp]
+    (if (symbol? (cadr exp))
+        (cadr exp)
+        (caadr exp)))
+
+(defn definition-value [exp]
+    (if (symbol? (card exp))
+        (caddr exp)
+        (make-lambda (cdadr exp)
+                     (cddr exp))))
+
+(defn lambda? [exp]
+    (tagged-list? exp 'lambda))
+
+(defn lambda-parameters [exp]
+    (cadr exp))
+
+(defn lambda-body [exp]
+    (cddr exp))
+
+
+(defn make-lambda [parameters body]
+    (cons 'lambda (cons parameters body)))
+
+(defn if? [exp]
+    (tagged-list exp 'if))
+
+(defn if-predicate [exp]
+    (cadr exp))
+
+(defn if-consequent [exp]
+    (caddr exp))
+
+
+(defn if-alternative [exp]
+    (if (not (null? (cdddr exp)))
+        (cadddr exp)
+        'false))
+
+(defn make-if [predicate consequent alternative]
+    (list 'if predicate consequent alternative))
+
+(defn begin? [exp]
+    (tagged-list exp 'begin))
+
+(defn begin-actions [exp]
+    (cdr exp))
+
+(defn last-exp? [seq]
+    (null? (cdr seq)))
+
+(defn first-exp [seq]
+    (car seq))
+
+(defn rest-exp [seq]
+    (cdr seq))
+
+(defn sequence->exp [seq]
+    (cond (null? seq) seq
+          (last-exp? seq) (first-exp seq)
+          else (make-begin seq)))
+
+(defn application? [exp]
+    (pair? exp))
+
+(defn operator [exp]
+    (car exp))
+
+(defn operands [exp]
+    (cdr exp))
+
+(defn no-operands? [ops]
+    (null? ops))
+
+(defn first-operand [ops]
+    (car ops))
+
+(defn rest-operands [ops]
+    (cdr ops))
+
+
+
 )
